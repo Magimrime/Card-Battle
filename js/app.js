@@ -208,10 +208,15 @@
     if (!mp && State.deck.length !== 6) { openDeck(); flashMsg('Build a 6-card deck before battling.', 'err'); return; }
     el('overlay').classList.remove('show');
     el('btn-rematch').style.display = '';
+    // Tracker/Predictor bots pick a play style (and a deck to match) + a pace; Reckless stays generic.
+    const cStyle = (!mp && State.difficulty >= 2) ? choice(['commit', 'scout', 'tempo']) : 'reckless';
+    const cPace  = (!mp && State.difficulty >= 2 && Math.random() < 0.5) ? 'slow' : 'fast';
     B = {
       pDeck: mp ? mp.myDeck.slice() : shuffle(State.deck), // player's cycle order (already shuffled in MP)
-      cDeck: mp ? mp.oppDeck.slice() : buildCpuDeck(),     // opponent's deck — the remote human's in MP
+      cDeck: mp ? mp.oppDeck.slice() : buildCpuDeck(cStyle), // opponent's deck — the remote human's in MP
       mp: mp || null,                                      // { role:'host'|'guest', key } when online
+      cStyle, cPace, cCommitFailed: false,                 // bot strategy state
+      pLast: null, pShieldStreak: 0,                       // tracking the player for counter-play
       pHP: 5, cHP: 5,
       pMana: MANA_MAX, cMana: MANA_MAX,
       pShieldOff: 0, cShieldOff: 0,                      // turns each shield stays stunned (after a break)
@@ -237,11 +242,19 @@
     setTO(startRound, 400);
   }
 
-  // The opponent runs this fixed, preset deck with at least one of EVERY class:
-  // melee (Sword, Battle Axe), projectile (Bow), special (Katana, Uno Reverse),
-  // and a spell (Poison). Only the draw ORDER is shuffled each battle.
-  const CPU_DECK = ['sword', 'axe', 'bow', 'katana', 'reverse', 'poison'];
-  function buildCpuDeck() { return shuffle(CPU_DECK); }
+  // The opponent runs a preset deck (only the draw ORDER is shuffled). Tracker/Predictor bots pick a
+  // play STYLE at battle start and use the matching deck, so each plan actually has its tools:
+  //   commit — lead with a shield-breaker and press; turtle up if the opener gets punished
+  //   scout  — shield turn 1 to read the foe, then counter with the right answer
+  //   tempo  — fast strikes + katana/reverse counter-predicts
+  const CPU_DECK = ['sword', 'axe', 'bow', 'katana', 'reverse', 'poison']; // L1 (reckless) generic
+  const STYLE_DECKS = {
+    commit: ['axe', 'harpoon', 'hook', 'hammer', 'bow', 'katana'],
+    scout:  ['katana', 'reverse', 'poison', 'sword', 'bow', 'axe'],
+    tempo:  ['dart', 'dagger', 'katana', 'reverse', 'bow', 'sword'],
+  };
+  const BREAKERS = ['axe', 'hook', 'harpoon', 'rpeg']; // cards that disable / pierce a shield
+  function buildCpuDeck(style) { return shuffle(STYLE_DECKS[style] || CPU_DECK); }
 
   function startRound() {
     if (!B) return;
@@ -397,7 +410,7 @@
       const threat = c.damage + ((c.type === 'katana' || c.type === 'reverse') ? 0.6 : 0) + 0.25;
       return { id, w: threat };
     });
-    if (B.pShieldOff === 0) opts.push({ id: 'shield', w: opts.length ? 0.5 : 2 }); // can't attack → likely to turtle
+    if (B.pShieldOff === 0) opts.push({ id: 'shield', w: (opts.length ? 0.5 : 2) * (1 + (B.pShieldStreak || 0) * 0.8) }); // turtlers keep shielding
     else if (level >= 3 && !opts.length) opts.push({ id: 'none', w: 1 });           // out of mana & shield stunned → exposed!
     if (!opts.length) opts.push({ id: 'sword', w: 1 });                             // total blind → assume a generic hit
     const tot = opts.reduce((s, o) => s + o.w, 0);
@@ -422,23 +435,70 @@
     if (!cands.length) return 'none';                  // nothing affordable & shield stunned → exposed
     const lvl = B.difficulty || 1;
     if (lvl === 1) return cpuReckless(cands);
+    return cpuStrategic(cands, lvl);                   // Tracker / Predictor play with a strategy
+  }
 
+  // Tracker (L2) & Predictor (L3): score every move, then bend it toward the chosen play style,
+  // the read on the player (turtling / out of mana), and the pace (fast = punish now, slow = wait).
+  function cpuStrategic(cands, lvl) {
+    const has = (id) => cands.indexOf(id) >= 0;
+    const playerMana = B.pMana + B.pManaAbsorb;
+    const playerStuck = handIds(B.pDeck).every((id) => !affordable(CARDS.byId(id), playerMana));
+    const playerLowMana = playerMana < 2;             // can barely act → likely to shield
+    const turtling = B.pShieldStreak >= 1;            // shielded last turn (or more)
+    const exposed = playerStuck || playerLowMana || turtling;
     const dist = cpuPredict(lvl);
-    // L3 manages its mana: hoard it on neutral turns, but unload when the player is out of mana
-    const playerStuck = handIds(B.pDeck).every((id) => !affordable(CARDS.byId(id), B.pMana + B.pManaAbsorb));
+    const chanceOf = (test) => dist.filter((o) => test(CARDS.byId(o.id))).reduce((s, o) => s + o.p, 0);
+    const projChance = chanceOf((k) => k.type === 'projectile');
+    const slowChance = chanceOf((k) => !k.spell && k.type !== 'shield' && k.speed >= 1.8);
+
+    // ---- opening moves by style ----
+    if (B.round === 1 && !B.cCommitFailed) {
+      if (B.cStyle === 'commit') { const op = BREAKERS.find(has); if (op) return op; }    // lead with a shield-breaker
+      if (B.cStyle === 'scout' && has('shield') && B.cShieldOff === 0) return 'shield';   // shield turn 1 to read them
+      // tempo: never katana/reverse on the first play (penalised below)
+    }
+
     const exploit = lvl >= 3 && playerStuck;                 // player can't attack → press the advantage
     const manaPenalty = (lvl >= 3 && !exploit) ? 0.18 : 0;   // each saved mana point is worth something
 
     let best = cands[0], bestScore = -Infinity;
     cands.forEach((cc) => {
       const c = CARDS.byId(cc);
+      const isAttack = cc !== 'shield' && cc !== 'none' && !c.spell;   // anything that pressures the foe
       let score = 0;
       dist.forEach((po) => { score += po.p * cpuEval(po.id, cc); });
-      if (c.type === 'katana' || c.type === 'reverse') score += 0.4;     // use these more often
-      score -= c.mana * manaPenalty;                                     // bank mana rather than dump it
-      if (manaPenalty && B.cMana - c.mana < 1) score -= 0.3;            // don't empty the bar on a neutral turn
+
+      score -= c.mana * manaPenalty;                                   // bank mana rather than dump it
+      if (manaPenalty && B.cMana - c.mana < 1) score -= 0.3;
       if (cc === 'shield') { score -= B.cMana * 0.14; if (B.cPrev === 'shield') score -= 0.7; } // don't turtle with spare mana / repeat
-      score += (Math.random() - 0.4) * (lvl === 3 ? 0.7 : 0.4);         // takes chances (more at L3)
+
+      // shield-breakers: punish a turtle, and disable the shield of a foe with no mana to attack
+      if (BREAKERS.indexOf(cc) >= 0) {
+        if (turtling)      score += 1.3;
+        if (playerLowMana) score += 1.0;
+        if (B.cStyle === 'commit' && !B.cCommitFailed) score += 0.5;
+      }
+      // katana / reverse: counter-predict a projectile — but never on the first play
+      if (cc === 'katana' || cc === 'reverse') {
+        score += projChance * 1.4;
+        if (B.round === 1) score -= 1.6;
+        if (B.cStyle === 'tempo') score += projChance * 0.5;
+      }
+      // fast strikes punish a predicted slow card (dart / dagger)
+      if (isAttack && c.speed <= 0.9) score += slowChance * 0.9;
+
+      // pace: fast presses immediately; slow waits for a 2nd mistake, striking only once they're exposed
+      if (B.cPace === 'slow' && !exposed) {
+        if (cc === 'shield' && B.cShieldOff === 0 && B.cPrev !== 'shield') score += 0.6;
+        if (isAttack) score -= 0.4;
+      } else if (isAttack) {
+        score += 0.4;
+      }
+      // commit that got punished → batten down
+      if (B.cStyle === 'commit' && B.cCommitFailed && cc === 'shield' && B.cShieldOff === 0) score += 0.8;
+
+      score += (Math.random() - 0.4) * (lvl === 3 ? 0.6 : 0.4);        // takes chances (more at L3)
       if (score > bestScore) { bestScore = score; best = cc; }
     });
     return best;
@@ -650,6 +710,9 @@
     if (cMinigunArm)  { B.cMinigunArmed = true;  B.cMinigunCharge = 0; }
     if (cMinigunFire) { B.cMinigunArmed = false; B.cMinigunCharge = 0; }
     if (B.pCard !== 'shield' && B.pCard !== 'none') B.pSeen.add(B.pCard); // CPU now "knows" this card
+    if (B.pCard === 'shield') B.pShieldStreak++; else B.pShieldStreak = 0; // is the player turtling?
+    B.pLast = B.pCard;
+    if (B.cStyle === 'commit' && !B.cCommitFailed && B.round <= 2 && r.cTake > 0) B.cCommitFailed = true; // opener punished → go defensive
     B.cPrev = B.cCard;                                                    // remember CPU's move (anti shield-spam)
     if (pWeapon) { B.pSpeedBuff = false; B.pDmgBuff = false; }            // only a weapon uses & spends the buffs
     if (cWeapon) { B.cSpeedBuff = false; B.cDmgBuff = false; }            // (spells/shield keep them for the next weapon)
