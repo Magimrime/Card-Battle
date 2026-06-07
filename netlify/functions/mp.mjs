@@ -42,7 +42,7 @@ export default async (req) => {
       const room = await store.get('room:' + body.key, { type: 'json' });
       if (!room) return json({ ok: false, error: 'No game with that key.' });
       if (await store.get('guest:' + body.key)) return json({ ok: false, error: 'That game is already full.' });
-      const startAt = Date.now() + 2500;   // shared kickoff moment so both sides begin together
+      const startAt = Date.now() + 1200;   // shared kickoff moment so both sides begin together
       await store.setJSON('guest:' + body.key, { guestDeck: body.deck || [], startAt });
       return json({ ok: true, oppDeck: room.hostDeck, startAt });
     }

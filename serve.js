@@ -32,7 +32,7 @@ function handleMP(req, res, pathname, q) {
       const r = rooms[b.key];
       if (!r) return sendJSON(res, { ok: false, error: 'No game with that key.' });
       if (r.guestDeck) return sendJSON(res, { ok: false, error: 'That game is already full.' });
-      r.guestDeck = b.deck || []; r.startAt = Date.now() + 2500; r.ts = Date.now(); // shared kickoff moment
+      r.guestDeck = b.deck || []; r.startAt = Date.now() + 1200; r.ts = Date.now(); // shared kickoff moment
       sendJSON(res, { ok: true, oppDeck: r.hostDeck, startAt: r.startAt });
     });
   }

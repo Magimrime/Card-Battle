@@ -322,11 +322,58 @@
         cardEl.classList.remove('dragging');
         el('player-slot').classList.remove('drop-ready', 'drop-hover');
       });
+      attachTouchDrag(cardEl, id);   // finger-drag onto the slot (phones)
 
       hand.appendChild(cardEl);
     });
     const nextId = B.pDeck[3];
     el('next').innerHTML = nextId ? cardHTML(CARDS.byId(nextId), { cost: false }) : '';
+  }
+
+  // touch drag-and-drop: HTML5 drag doesn't work on phones, so mimic it with touch events.
+  // A small move turns a tap into a drag (a tap still just raises the card); a real drag
+  // shows a ghost following the finger and drops onto the slot.
+  function attachTouchDrag(cardEl, id) {
+    let ghost = null, startX = 0, startY = 0, active = false, moved = false;
+    const slot = () => document.getElementById('player-slot');
+    const overSlot = (x, y) => { const e2 = document.elementFromPoint(x, y), s = slot(); return !!(e2 && s && (s === e2 || s.contains(e2))); };
+    const moveGhost = (x, y) => { if (ghost) { ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; } };
+    function startDrag() {
+      const r = cardEl.getBoundingClientRect();
+      ghost = cardEl.cloneNode(true); ghost.classList.add('drag-ghost');
+      ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
+      document.body.appendChild(ghost);
+      cardEl.classList.add('dragging'); slot().classList.add('drop-ready');
+    }
+    function endDrag() {
+      if (ghost) { ghost.remove(); ghost = null; }
+      cardEl.classList.remove('dragging'); slot().classList.remove('drop-ready', 'drop-hover');
+    }
+    cardEl.addEventListener('touchstart', (e) => {
+      if (!B || B.phase !== 'choosing' || B.pDone) return;
+      if (!affordable(CARDS.byId(id), B.pMana + B.pManaAbsorb)) return;
+      const t = e.touches[0]; startX = t.clientX; startY = t.clientY; active = true; moved = false;
+    }, { passive: true });
+    cardEl.addEventListener('touchmove', (e) => {
+      if (!active) return;
+      const t = e.touches[0];
+      if (!moved) {
+        if (Math.abs(t.clientX - startX) < 8 && Math.abs(t.clientY - startY) < 8) return; // still just a tap
+        moved = true; startDrag();
+      }
+      e.preventDefault();                                              // a real drag → don't scroll the page
+      moveGhost(t.clientX, t.clientY);
+      slot().classList.toggle('drop-hover', overSlot(t.clientX, t.clientY));
+    }, { passive: false });
+    cardEl.addEventListener('touchend', (e) => {
+      if (!active) return; active = false;
+      if (!moved) return;                                              // a tap → let the click handler raise it
+      e.preventDefault();                                              // a drag → suppress the synthetic click
+      const t = e.changedTouches[0], drop = overSlot(t.clientX, t.clientY);
+      endDrag();
+      if (drop) commitPlayer(id);
+    });
+    cardEl.addEventListener('touchcancel', () => { if (moved) endDrag(); active = false; });
   }
 
   // lift a card up (does NOT play it — you must drop it / tap the slot)
@@ -585,7 +632,7 @@
             if (d.gone) { clearInterval(mpJoinInt); mpJoinInt = null; mpStat('mp-host-status', 'Game expired — exit and try again.', 'err'); return; }
             if (d.joined) { clearInterval(mpJoinInt); mpJoinInt = null; mpStartSync({ role: 'host', key, myDeck: deck, oppDeck: d.oppDeck }, d.startAt); }
           }).catch(() => {});
-        }, 700);
+        }, 300);
       })
       .catch(() => mpStat('mp-host-status', 'Could not reach the server.', 'err'));
   }
@@ -618,7 +665,7 @@
         if (d.gone) { clearInterval(mpMoveInt); mpMoveInt = null; mpLeft(); return; }
         if (d.card != null) { clearInterval(mpMoveInt); mpMoveInt = null; commitOpponent(d.card); }
       }).catch(() => {});
-    }, 600);
+    }, 200);   // poll fast so the opponent's move lands almost instantly
   }
 
   function mpLeft() {
