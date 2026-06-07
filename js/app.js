@@ -507,7 +507,9 @@
     el('mp-key').textContent = '····'; mpStat('mp-host-status', 'Creating game…');
     mpOpen('mp-host-modal');
     mpJSON('/mp/host', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deck }) })
-      .then(({ key }) => {
+      .then((d) => {
+        if (!d || !d.key) { mpStat('mp-host-status', d && d.detail ? ('Server error: ' + d.detail) : (d && d.error) || 'Server did not return a key.', 'err'); return; }
+        const key = d.key;
         el('mp-key').textContent = key; mpStat('mp-host-status', '');
         mpJoinInt = setInterval(() => {
           mpJSON('/mp/joined?key=' + key).then((d) => {
