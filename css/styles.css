@@ -550,18 +550,68 @@ html, body {
 .charge-amt { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 1px; z-index: 5; font-family: var(--font-display); font-weight: 800; font-size: .66rem; color: #fff; padding: 1px 8px; border-radius: var(--r-pill); background: linear-gradient(135deg, #d4830f, #7a3a00); box-shadow: 0 2px 6px rgba(0, 0, 0, .45); }
 .charge-amt .ic { width: .85em; height: .85em; }
 
-@media (max-width: 640px) {
-  .card .cdesc { display: none; }
-  .vs-col { min-width: 76px; }
+/* ---- tablets & large phones ---- */
+@media (max-width: 720px) {
+  .card .cdesc { display: none; }                /* card text off to save space */
   .mana-label { display: none; }
-  .shield-btn { width: 66px; }
-  .hand-zone { gap: 10px; padding: 10px; }
-  .namebar { padding: 9px 12px; }
+  .vs-col { min-width: 70px; }
+  .namebar { padding: 9px 12px; gap: 10px; }
+  .who { font-size: .98rem; }
+  .hand-zone { gap: 12px; padding: 12px; }
+  .slot { width: clamp(104px, 26vw, 150px); }
+  .hand .card { width: clamp(80px, 19vw, 120px); }
+  .deck-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 14px; }
 }
-@media (max-width: 480px) {
-  .next-wrap { display: none; }
+
+/* ---- phones (portrait): stack the hand controls, give the cards the full width ---- */
+@media (max-width: 560px) {
+  .screen { padding: 10px; }
+  .battle { gap: 8px; padding-top: 38px; }
+  .btn-quit { padding: 6px 12px; font-size: .8rem; }
+  .namebar { padding: 8px 11px; border-radius: var(--r); gap: 8px; }
+  .who { font-size: .9rem; }
+  .heart { width: 22px; height: 22px; }
   .mana { padding: 4px 9px; gap: 6px; }
   .mana-orbs .orb { width: 11px; height: 11px; }
+
+  .slot { width: clamp(92px, 27vw, 128px); }
+  .vs-col { min-width: 56px; gap: 6px; }
+  .vs { font-size: 1.1rem; letter-spacing: 2px; }
+  .banner { min-height: 2.6em; }
+
+  /* two rows: [ timer .......... shield ] then [ card  card  card ] full width */
+  .hand-zone { flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px; }
+  .timer { width: clamp(46px, 13vw, 58px); height: clamp(46px, 13vw, 58px); }
+  .timer-num { font-size: 1.1rem; }
+  .side-controls { margin-left: auto; flex-direction: row; gap: 8px; }
+  .shield-btn { width: 62px; padding: 7px 5px; }
+  .next-wrap { display: none; }
+  .hand { order: 2; flex: 1 1 100%; gap: 8px; }
+  .hand .card { width: auto; flex: 1 1 0; max-width: 124px; }
+
+  /* multiplayer popups fit narrow screens */
+  .mp-card { min-width: 0; width: 100%; padding: 24px 18px; gap: 14px; }
+  .mp-choice .btn { width: 100%; }
+  .mp-key { font-size: 2.4rem; letter-spacing: 10px; padding: 8px 4px 8px 14px; }
+  .btn-lg { padding: 13px 22px; font-size: 1rem; }
+}
+
+/* ---- small phones ---- */
+@media (max-width: 380px) {
+  .slot { width: clamp(80px, 30vw, 112px); }
+  .vs-col { min-width: 46px; }
+  .card .emoji { font-size: 2.1rem; }
+  .card .cname { font-size: .82rem; }
+  .deck-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---- short screens (e.g. landscape phones): shrink the vertical stack ---- */
+@media (max-height: 600px) {
+  .battle { gap: 6px; padding-top: 34px; }
+  .slot { width: clamp(76px, 15vh, 120px); }
+  .timer { width: 52px; height: 52px; }
+  .namebar { padding: 6px 11px; }
+  .hand-zone { padding: 8px; }
 }
 
 /* ===================== multiplayer modals ===================== */
