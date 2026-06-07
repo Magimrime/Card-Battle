@@ -66,6 +66,6 @@ const CHROME = {
   sndoff: wsvg('<path d="M4 9.5v5h3.5L13 19V5L7.5 9.5z" fill="currentColor" stroke="none"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'),
   win:    wsvg('<path d="M7 4h10v3a5 5 0 0 1-10 0z" fill="currentColor" stroke="none"/><path d="M7 5H4.5v1A3.5 3.5 0 0 0 8 9.5M17 5h2.5v1A3.5 3.5 0 0 1 16 9.5"/><path d="M12 12v3.5M8.5 20h7M9.6 20l.5-4.4h3.8l.5 4.4"/>'),
   lose:   wsvg('<path d="M5 11a7 7 0 0 1 14 0v2.6a2.4 2.4 0 0 1-1.7 2.3V19a1 1 0 0 1-1 1H7.7a1 1 0 0 1-1-1v-2.1A2.4 2.4 0 0 1 5 13.6z"/><circle cx="9.3" cy="11.6" r="1.5" fill="currentColor" stroke="none"/><circle cx="14.7" cy="11.6" r="1.5" fill="currentColor" stroke="none"/><path d="M9.5 20v-1.8M12 20v-1.8M14.5 20v-1.8"/>'),
-  draw:   wsvg('<path d="M4 9.5h16M4 14.5h16"/>'),
+  draw:   wsvg('<circle cx="12" cy="4.3" r="1"/><path d="M12 5.3v12.2M8.3 17.8h7.4M5 8h14M5 8v1.7M19 8v1.7M2.8 9.7q2.2 3.3 4.4 0M16.8 9.7q2.2 3.3 4.4 0"/>'),
   online: wsvg('<circle cx="8.5" cy="8" r="2.6"/><circle cx="15.5" cy="8" r="2.6"/><path d="M3.5 18.4c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6M13 18.4c.1-2.8 2.3-4.6 5-4.6 1.1 0 2.1.3 2.9.8"/>'),
 };
