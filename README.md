@@ -1,4 +1,4 @@
-# Card Battle — Weapon Duel
+# Card Prediction — Weapon Duel
 
 A web card game: an enhanced rock-paper-scissors where every card is a **weapon**.
 Read your opponent, manage your **mana**, and exploit hard counters — with
@@ -35,7 +35,7 @@ Combat is decided by weapon **type**:
 
 ## Project structure
 ```
-Card Battle/
+Card Prediction/
 ├── index.html        # Markup + screens (Home / Deck / Battle)
 ├── README.md
 ├── css/

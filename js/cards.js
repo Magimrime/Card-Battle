@@ -1,5 +1,5 @@
 /* ===========================================================================
-   cards.js  —  Weapon data + combat resolution for "Card Battle"
+   cards.js  —  Weapon data + combat resolution for "Card Prediction"
    ---------------------------------------------------------------------------
    Every card is a WEAPON. Combat is decided by weapon TYPE, in an extended
    rock-paper-scissors web:

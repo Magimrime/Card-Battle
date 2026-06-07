@@ -1,4 +1,4 @@
-/* Static dev server for Card Battle + a tiny in-memory multiplayer relay.
+/* Static dev server for Card Prediction + a tiny in-memory multiplayer relay.
    Run:  node serve.js  → http://localhost:8080
    Multiplayer is "lockstep": each client runs the same deterministic battle and
    the server only relays the 4-char room key, the shuffled decks, and per-round moves. */
@@ -63,4 +63,4 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     res.end(data);
   });
-}).listen(PORT, () => console.log('Card Battle running on http://localhost:' + PORT));
+}).listen(PORT, () => console.log('Card Prediction running on http://localhost:' + PORT));

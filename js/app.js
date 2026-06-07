@@ -1,5 +1,5 @@
 /* ===========================================================================
-   app.js  —  screens, deck builder, and the battle loop for "Card Battle"
+   app.js  —  screens, deck builder, and the battle loop for "Card Prediction"
    ========================================================================= */
 (function () {
   'use strict';
@@ -25,7 +25,7 @@
   /* ----------------------------- persistence --------------------------- */
   function loadDeck() {
     try {
-      const raw = JSON.parse(localStorage.getItem('cardbattle_deck') || localStorage.getItem('brps_deck'));
+      const raw = JSON.parse(localStorage.getItem('cardprediction_deck') || localStorage.getItem('cardbattle_deck') || localStorage.getItem('brps_deck'));
       const spellT = ['spell', 'poison', 'damage'];
       const spells = Array.isArray(raw) ? raw.filter((id) => CARDS.byId(id) && spellT.indexOf(CARDS.byId(id).type) >= 0).length : 9;
       if (Array.isArray(raw) && raw.length === 6 && raw.every((id) => CARDS.byId(id) && id !== 'shield') && spells <= 2) {
@@ -35,16 +35,16 @@
     return DEFAULT_DECK.slice();
   }
   function saveDeckToStore(deck) {
-    try { localStorage.setItem('cardbattle_deck', JSON.stringify(deck)); } catch (e) {}
+    try { localStorage.setItem('cardprediction_deck', JSON.stringify(deck)); } catch (e) {}
   }
   function loadMuted() {
-    try { return (localStorage.getItem('cardbattle_muted') || localStorage.getItem('brps_muted')) === '1'; } catch (e) { return false; }
+    try { return (localStorage.getItem('cardprediction_muted') || localStorage.getItem('cardbattle_muted') || localStorage.getItem('brps_muted')) === '1'; } catch (e) { return false; }
   }
   function loadDifficulty() {
-    try { const d = +(localStorage.getItem('cardbattle_diff') || localStorage.getItem('brps_diff')); return d >= 1 && d <= 3 ? d : 1; } catch (e) { return 1; }
+    try { const d = +(localStorage.getItem('cardprediction_diff') || localStorage.getItem('cardbattle_diff') || localStorage.getItem('brps_diff')); return d >= 1 && d <= 3 ? d : 1; } catch (e) { return 1; }
   }
   function saveDifficulty() {
-    try { localStorage.setItem('cardbattle_diff', String(State.difficulty)); } catch (e) {}
+    try { localStorage.setItem('cardprediction_diff', String(State.difficulty)); } catch (e) {}
   }
 
   /* ------------------------------- sound ------------------------------- */
@@ -992,7 +992,7 @@
     paintMute();
     muteBtn.addEventListener('click', () => {
       State.muted = !State.muted; paintMute();
-      try { localStorage.setItem('cardbattle_muted', State.muted ? '1' : '0'); } catch (e) {}
+      try { localStorage.setItem('cardprediction_muted', State.muted ? '1' : '0'); } catch (e) {}
     });
 
     // keyboard: 1/2/3 raise a card (press again or Enter to place); S/4 = shield
