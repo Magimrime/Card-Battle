@@ -1,0 +1,11 @@
+# Card Prediction — Netlify config
+# Static site at the repo root, plus the multiplayer relay as a serverless function.
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Route the game's /mp/* calls to the relay function (same paths the client already uses).
+[[redirects]]
+  from = "/mp/*"
+  to = "/.netlify/functions/mp/:splat"
+  status = 200

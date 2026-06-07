@@ -1,0 +1,12 @@
+{
+  "name": "card-prediction",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Card Prediction — a card-duel game. Static site + a serverless multiplayer relay.",
+  "scripts": {
+    "dev": "node serve.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.0.0"
+  }
+}
