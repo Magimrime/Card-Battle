@@ -46,7 +46,7 @@ const CARDS = (function () {
     { id: 'shuriken',  name: 'Shuriken',     emoji: '✴️', type: 'projectile', damage: 1.0,  mana: 1, speed: 1.2, double: true, c1: '#b0e0c0', c2: '#2f7a5c',
       desc: 'Spinning steel — a double strike: 0.5 at speed 1.2, then 0.5 at speed 2.2 (same round).' },
     { id: 'minigun',   name: 'Minigun',      emoji: '🔫', type: 'projectile', damage: 0.5,  mana: 3, speed: 1.5, charges: true, c1: '#9aa0b8', c2: '#3a3f57',
-      desc: 'First use deploys it (no damage) — it stays in your hand. Each turn held it gains +0.5 damage; play it again to fire it all. Blocked/reflected = wasted.' },
+      desc: 'First use deploys it — no damage and you are defenseless that turn (weak to anything). It stays in your hand gaining +0.5 damage each turn; play it again to fire it all as a projectile. Blocked/reflected = wasted.' },
 
     /* ----- SPECIAL ----- */
     { id: 'katana',  name: 'Katana',      emoji: '🗡️', type: 'katana',   damage: 0.5,  mana: 2, speed: 0.9, c1: '#ff7a7a', c2: '#7a1414',

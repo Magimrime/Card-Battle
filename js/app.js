@@ -698,9 +698,9 @@
     const minigunFire  = (B.pCard === 'minigun' && B.minigunArmed);     // second use: fire the stored charge
     const cMinigunArm  = (B.cCard === 'minigun' && !B.cMinigunArmed);   // (opponent's, online)
     const cMinigunFire = (B.cCard === 'minigun' && B.cMinigunArmed);
-    if (minigunArm)   p = Object.assign({}, p, { damage: 0 });
-    if (minigunFire)  p = Object.assign({}, p, { damage: +B.minigunCharge.toFixed(2) });
-    if (cMinigunArm)  c = Object.assign({}, c, { damage: 0 });
+    if (minigunArm)   p = Object.assign({}, p, { damage: 0, type: 'broken' });   // deploying = defenseless, weak to anything
+    if (minigunFire)  p = Object.assign({}, p, { damage: +B.minigunCharge.toFixed(2) });  // firing = a real projectile
+    if (cMinigunArm)  c = Object.assign({}, c, { damage: 0, type: 'broken' });
     if (cMinigunFire) c = Object.assign({}, c, { damage: +B.cMinigunCharge.toFixed(2) });
     const pWeapon = isWeapon(p), cWeapon = isWeapon(c);
     const mods = { pSpd: (pWeapon && B.pSpeedBuff) ? 1 : 0, cSpd: (cWeapon && B.cSpeedBuff) ? 1 : 0, pDmg: (pWeapon && B.pDmgBuff) ? 1 : 0, cDmg: (cWeapon && B.cDmgBuff) ? 1 : 0, pShieldHP: B.pShieldHP, cShieldHP: B.cShieldHP };
