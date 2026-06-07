@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Card Battle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l1.8 3.7-.8 8.3h-2l-.8-8.3z' fill='%23ffc24d'/%3E%3Cpath d='M8 14h8M12 14v5M10.5 19.5h3' stroke='%23ffc24d' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <!-- ===================== HOME ===================== -->
+  <section id="screen-home" class="screen active">
+    <div class="home-wrap">
+      <h1 class="title">CARD<span>BATTLE</span></h1>
+      <p class="tagline">A card duel of counters, nerves &amp; a ticking clock.</p>
+      <div class="home-buttons">
+        <button id="btn-battle" class="btn btn-primary btn-lg">⚔️ Battle</button>
+        <button id="btn-mp" class="btn btn-secondary btn-lg">Multiplayer</button>
+        <button id="btn-deck" class="btn btn-secondary btn-lg">🃏 Deck</button>
+        <button id="btn-help" class="btn btn-ghost btn-lg">❓ How to Play</button>
+      </div>
+
+      <div class="diff-pick" id="diff-pick">
+        <span class="diff-label">Opponent</span>
+        <div class="diff-opts">
+          <button class="diff-btn" data-lvl="1"><b>I</b><span>Reckless</span></button>
+          <button class="diff-btn" data-lvl="2"><b>II</b><span>Tracker</span></button>
+          <button class="diff-btn" data-lvl="3"><b>III</b><span>Predictor</span></button>
+        </div>
+      </div>
+
+      <p class="home-foot">Build a deck of <b>exactly 6</b>. Play 1 of your 3 in-hand cards each round.</p>
+    </div>
+  </section>
+
+  <!-- ===================== DECK BUILDER ===================== -->
+  <section id="screen-deck" class="screen">
+    <header class="topbar">
+      <button id="btn-deck-back" class="btn btn-ghost">← Home</button>
+      <h2>Build Your Deck</h2>
+      <div class="deck-count-pill">Deck <b id="deck-count">0</b> / 6</div>
+    </header>
+    <p class="deck-hint">Tap cards to add or remove them. A deck must have <b>exactly 6 cards</b> — no more, no less, and at most <b>2 spells</b>.</p>
+    <div id="deck-grid" class="deck-grid"></div>
+    <div class="deck-actions">
+      <span id="deck-msg" class="deck-msg"></span>
+      <button id="btn-save-deck" class="btn btn-primary" disabled>Save Deck</button>
+    </div>
+  </section>
+
+  <!-- ===================== BATTLE ===================== -->
+  <section id="screen-battle" class="screen">
+    <div class="battle">
+      <!-- Opponent -->
+      <div class="side side-cpu">
+        <div class="namebar">
+          <span class="who">🤖 Opponent</span>
+          <span id="cpu-shield-status" class="shield-status"></span>
+          <div id="cpu-mana" class="mana"></div>
+          <div id="cpu-hp" class="hp-hearts"></div>
+        </div>
+      </div>
+
+      <!-- Arena -->
+      <div class="arena">
+        <div class="slot-row">
+          <div class="slot" id="cpu-slot">
+            <div class="placeholder" id="cpu-ph">Waiting…</div>
+            <div class="flip" id="cpu-flip" hidden>
+              <div class="flip-inner">
+                <div class="flip-front"></div>
+                <div class="flip-back"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="vs-col">
+            <div id="banner" class="banner"></div>
+            <div class="vs">VS</div>
+          </div>
+
+          <div class="slot" id="player-slot">
+            <div class="placeholder" id="player-ph">Your slot</div>
+            <div class="flip" id="player-flip" hidden>
+              <div class="flip-inner">
+                <div class="flip-front"></div>
+                <div class="flip-back"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player -->
+      <div class="side side-player">
+        <div class="namebar">
+          <span class="who">🙂 You</span>
+          <span id="player-status" class="shield-status"></span>
+          <div id="player-mana" class="mana"></div>
+          <div id="player-hp" class="hp-hearts"></div>
+        </div>
+
+        <div class="hand-zone">
+          <div class="timer">
+            <svg class="timer-ring" viewBox="0 0 100 100">
+              <circle class="ring-bg" cx="50" cy="50" r="44"></circle>
+              <circle id="ring-fg" class="ring-fg" cx="50" cy="50" r="44"></circle>
+            </svg>
+            <div id="timer-num" class="timer-num">15</div>
+          </div>
+
+          <div id="hand" class="hand"></div>
+
+          <div class="side-controls">
+            <button id="btn-shield" class="shield-btn" title="Shield (always free) — blocks attacks, uses your whole turn"></button>
+            <div class="next-wrap">
+              <span class="next-label">Next</span>
+              <div id="next" class="next-card"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-battle-quit" class="btn btn-ghost btn-quit">⏏ Quit</button>
+    </div>
+  </section>
+
+  <!-- ===================== RESULT OVERLAY ===================== -->
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h2 id="result-title">Victory!</h2>
+      <p id="result-sub"></p>
+      <div class="overlay-buttons">
+        <button id="btn-rematch" class="btn btn-primary">Rematch</button>
+        <button id="btn-home" class="btn btn-secondary">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HELP MODAL ===================== -->
+  <div id="help-modal" class="overlay">
+    <div class="overlay-card help-card">
+      <h2>How to Play</h2>
+      <ul class="help-list">
+        <li>🎯 You and your opponent each have <b>3 hearts</b>. Drop a foe to 0 to win.</li>
+        <li>🃏 Every card is a <b>weapon</b>. Build a deck of <b>exactly 6</b>; you hold <b>3</b> and cycle the next one in after each play.</li>
+        <li>🔵 You have <b>5 mana</b>, regaining <b>+1 every round</b>. Each card costs mana — <b>Hook is free</b>.</li>
+        <li>🗿 <b>Drag</b> a card onto your slot — or <b>tap</b> it to lift it, then <b>tap the slot</b> to place it. (Keys 1/2/3 lift, Enter places.)</li>
+        <li>⚔️➡️🗡️ <b>Projectile</b> beats <b>Melee</b> · <b>Melee</b> beats <b>Katana</b> · <b>Katana</b> blocks <b>Projectiles</b> (cuts back ½❤).</li>
+        <li>🔄 <b>Uno Reverse</b> deflects a projectile back at the enemy. 🛡️ <b>Shield</b> (always free, key <b>S</b>) blocks attacks but is your whole turn.</li>
+        <li>🪝 <b>Hook</b> (free) smashes a Shield and disables it 1 turn — but loses to any weapon. <b>Harpoon / R-Peg</b> are <b>projectiles</b> that also disable a Shield for <b>2 / 3</b> turns.</li>
+        <li>🤝 Same-type clashes are a <b>stalemate</b>: both weapons still land, for <b>½ heart less</b>.</li>
+      </ul>
+      <div class="overlay-buttons">
+        <button id="btn-help-close" class="btn btn-primary">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MULTIPLAYER: CHOICE ===================== -->
+  <div id="mp-modal" class="overlay">
+    <div class="overlay-card mp-card mp-choice-card">
+      <h2>Multiplayer</h2>
+      <div class="mp-choice">
+        <button id="btn-mp-host" class="btn btn-primary btn-lg">Host a game</button>
+        <button id="btn-mp-joinview" class="btn btn-secondary btn-lg">Join a game</button>
+      </div>
+      <div class="overlay-buttons">
+        <button id="btn-mp-choice-exit" class="btn btn-ghost">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MULTIPLAYER: HOST ===================== -->
+  <div id="mp-host-modal" class="overlay">
+    <div class="overlay-card mp-card">
+      <h2>Hosting</h2>
+      <p class="mp-host-label">Give this key to your opponent:</p>
+      <div id="mp-key" class="mp-key">····</div>
+      <p class="mp-wait"><span class="mp-spinner"></span> Waiting for opponent to join…</p>
+      <p id="mp-host-status" class="mp-status"></p>
+      <div class="overlay-buttons">
+        <button id="btn-mp-host-exit" class="btn btn-ghost">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MULTIPLAYER: JOIN ===================== -->
+  <div id="mp-join-modal" class="overlay">
+    <div class="overlay-card mp-card">
+      <h2>Join a game</h2>
+      <p class="mp-host-label">Enter your opponent's game key:</p>
+      <div class="mp-join-row">
+        <input id="mp-key-input" class="mp-key-input" maxlength="4" placeholder="KEY" autocomplete="off" spellcheck="false" />
+        <button id="btn-mp-join" class="btn btn-primary">Join</button>
+      </div>
+      <p id="mp-status" class="mp-status"></p>
+      <div class="overlay-buttons">
+        <button id="btn-mp-join-exit" class="btn btn-ghost">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="btn-mute" class="mute-btn" title="Toggle sound">🔊</button>
+
+  <script src="js/cards.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
