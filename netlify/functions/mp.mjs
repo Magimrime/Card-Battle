@@ -24,7 +24,7 @@ export default async (req) => {
     let body = {};
     if (post) { try { body = await req.json(); } catch (e) { body = {}; } }
 
-    const store = getStore('cardprediction-mp');
+    const store = getStore({ name: 'cardprediction-mp', consistency: 'strong' }); // strong = read-after-write across invocations (moves relay reliably)
 
     if (action === 'health') {
       await store.setJSON('health', { ts: Date.now() });
