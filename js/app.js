@@ -548,6 +548,15 @@
   }
   function mpOpen(id) { mpCloseAll(); el(id).classList.add('show'); }
 
+  // Both players begin at the same shared moment: the server stamps `startAt` when the room fills,
+  // and each side waits until then. Otherwise the joiner (who starts instantly) runs ahead of the
+  // host (who only learns of the join a poll later), and the two games drift apart.
+  function mpStartSync(cfg, startAt) {
+    const wait = Math.min(5000, Math.max(0, (startAt || 0) - Date.now()));
+    mpStat(cfg.role === 'host' ? 'mp-host-status' : 'mp-status', 'Opponent ready — starting…');
+    setTimeout(() => { if (mpJoinInt) { clearInterval(mpJoinInt); mpJoinInt = null; } mpCloseAll(); startBattle(cfg); }, wait);
+  }
+
   // first popup: only Host / Join
   function openMP() {
     if (State.deck.length !== 6) { openDeck(); flashMsg('Build a 6-card deck before going online.', 'err'); return; }
@@ -574,9 +583,9 @@
         mpJoinInt = setInterval(() => {
           mpJSON('/mp/joined?key=' + key).then((d) => {
             if (d.gone) { clearInterval(mpJoinInt); mpJoinInt = null; mpStat('mp-host-status', 'Game expired — exit and try again.', 'err'); return; }
-            if (d.joined) { mpCloseAll(); startBattle({ role: 'host', key, myDeck: deck, oppDeck: d.oppDeck }); }
+            if (d.joined) { clearInterval(mpJoinInt); mpJoinInt = null; mpStartSync({ role: 'host', key, myDeck: deck, oppDeck: d.oppDeck }, d.startAt); }
           }).catch(() => {});
-        }, 900);
+        }, 700);
       })
       .catch(() => mpStat('mp-host-status', 'Could not reach the server.', 'err'));
   }
@@ -589,8 +598,7 @@
     mpJSON('/mp/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, deck }) })
       .then((d) => {
         if (!d.ok) { mpStat('mp-status', d.error || 'Could not join.', 'err'); return; }
-        mpCloseAll();
-        startBattle({ role: 'guest', key, myDeck: deck, oppDeck: d.oppDeck });
+        mpStartSync({ role: 'guest', key, myDeck: deck, oppDeck: d.oppDeck }, d.startAt);
       })
       .catch(() => mpStat('mp-status', 'Could not reach the server.', 'err'));
   }

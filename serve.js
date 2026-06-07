@@ -32,11 +32,11 @@ function handleMP(req, res, pathname, q) {
       const r = rooms[b.key];
       if (!r) return sendJSON(res, { ok: false, error: 'No game with that key.' });
       if (r.guestDeck) return sendJSON(res, { ok: false, error: 'That game is already full.' });
-      r.guestDeck = b.deck || []; r.ts = Date.now();
-      sendJSON(res, { ok: true, oppDeck: r.hostDeck });
+      r.guestDeck = b.deck || []; r.startAt = Date.now() + 2500; r.ts = Date.now(); // shared kickoff moment
+      sendJSON(res, { ok: true, oppDeck: r.hostDeck, startAt: r.startAt });
     });
   }
-  if (pathname === '/mp/joined') { const r = rooms[q.get('key')]; return sendJSON(res, r ? { joined: !!r.guestDeck, oppDeck: r.guestDeck } : { gone: true }); }
+  if (pathname === '/mp/joined') { const r = rooms[q.get('key')]; return sendJSON(res, r ? { joined: !!r.guestDeck, oppDeck: r.guestDeck, startAt: r.startAt } : { gone: true }); }
   if (pathname === '/mp/move' && req.method === 'POST') {
     return readBody(req, (b) => { const r = rooms[b.key]; if (!r) return sendJSON(res, { gone: true }); r[(b.role === 'host' ? 'host' : 'guest') + 'Moves'][b.round] = b.card; r.ts = Date.now(); sendJSON(res, { ok: true }); });
   }

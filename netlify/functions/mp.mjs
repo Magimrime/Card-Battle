@@ -42,15 +42,16 @@ export default async (req) => {
       const room = await store.get('room:' + body.key, { type: 'json' });
       if (!room) return json({ ok: false, error: 'No game with that key.' });
       if (await store.get('guest:' + body.key)) return json({ ok: false, error: 'That game is already full.' });
-      await store.setJSON('guest:' + body.key, { guestDeck: body.deck || [] });
-      return json({ ok: true, oppDeck: room.hostDeck });
+      const startAt = Date.now() + 2500;   // shared kickoff moment so both sides begin together
+      await store.setJSON('guest:' + body.key, { guestDeck: body.deck || [], startAt });
+      return json({ ok: true, oppDeck: room.hostDeck, startAt });
     }
 
     if (action === 'joined') {
       const room = await store.get('room:' + q.get('key'), { type: 'json' });
       if (!room) return json({ gone: true });
       const g = await store.get('guest:' + q.get('key'), { type: 'json' });
-      return json({ joined: !!g, oppDeck: g ? g.guestDeck : null });
+      return json({ joined: !!g, oppDeck: g ? g.guestDeck : null, startAt: g ? g.startAt : null });
     }
 
     if (action === 'move' && post) {
