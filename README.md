@@ -30,7 +30,7 @@ Combat is decided by weapon **type**:
 - **Same-type clashes are a stalemate**: both weapons still land. The **faster** card (**lower Speed**, 0–3 — lower is faster) deals its **full** damage; the slower one deals **half a heart less** (1.5→1, 1.0→0.5, 0.5→0). Equal speed = both reduced.
 - **Battle Axe** is a melee that also **smashes a Shield for 3 turns** (like the shield-breakers).
 - The **Shield** is an always-available ability (key `S`). Playing it is your *whole* turn — no other card. While disabled it can't be used.
-- A Shield **blocks** all damage, but a blocked hit of **1.5+** still **stuns it for 1 turn** (repeatable) — heavy hitters punish turtling even when blocked.
+- A Shield is an **absorption pool** (durability 2, regen +0.5/turn): it soaks damage up to its current durability. A hit bigger than that **breaks it** — the shield is **stunned 1 turn** and the **overflow damage gets through** to you.
 - **Hook** costs **0 mana**, so you can always answer a turtling Shield. **Harpoon** and **R-Peg** behave as projectiles, so a **Katana blocks them** and an **Uno Reverse bounces them back** — and a blocked/reflected shield-breaker does **not** disable the shield.
 
 ## Project structure

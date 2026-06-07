@@ -643,7 +643,7 @@
     if (cMinigunArm)  c = Object.assign({}, c, { damage: 0 });
     if (cMinigunFire) c = Object.assign({}, c, { damage: +B.cMinigunCharge.toFixed(2) });
     const pWeapon = isWeapon(p), cWeapon = isWeapon(c);
-    const mods = { pSpd: (pWeapon && B.pSpeedBuff) ? 1 : 0, cSpd: (cWeapon && B.cSpeedBuff) ? 1 : 0, pDmg: (pWeapon && B.pDmgBuff) ? 1 : 0, cDmg: (cWeapon && B.cDmgBuff) ? 1 : 0 };
+    const mods = { pSpd: (pWeapon && B.pSpeedBuff) ? 1 : 0, cSpd: (cWeapon && B.cSpeedBuff) ? 1 : 0, pDmg: (pWeapon && B.pDmgBuff) ? 1 : 0, cDmg: (cWeapon && B.cDmgBuff) ? 1 : 0, pShieldHP: B.pShieldHP, cShieldHP: B.cShieldHP };
     const r = CARDS.resolve(p, c, B.pShieldOff > 0, B.cShieldOff > 0, mods);
     if (minigunArm)   { B.minigunArmed = true;  B.minigunCharge = 0; }
     if (minigunFire)  { B.minigunArmed = false; B.minigunCharge = 0; }  // charge spent (even if blocked/reflected)
@@ -768,8 +768,8 @@
     if (r.pShieldHit > 0 || r.cShieldHit > 0 || r.pShieldStun || r.cShieldStun) {   // a shield took the blow
       if (r.cShieldStun)        { cls += ' win';  main = `${ep(p)} ${ICON.bolt} ${WEAPON.shield}`; sub = `cleaved! ${dmg(r.cTake)} · stunned`; }
       else if (r.pShieldStun)   { cls += ' lose'; main = `${ep(c)} ${ICON.bolt} ${WEAPON.shield}`; sub = `cleaved! ${dmg(r.pTake)} · stunned`; }
-      else if (r.broke === 'p') { cls += ' lose'; main = `${ep(c)} ${ICON.bolt} ${WEAPON.shield}`; sub = `shield broke! stunned`; }
-      else if (r.broke === 'c') { cls += ' win';  main = `${ep(p)} ${ICON.bolt} ${WEAPON.shield}`; sub = `shield broke! stunned`; }
+      else if (r.broke === 'p') { cls += ' lose'; main = `${ep(c)} ${ICON.bolt} ${WEAPON.shield}`; sub = `shield broke!${r.pTake > 0 ? ' ' + dmg(r.pTake) : ''} · stunned`; }
+      else if (r.broke === 'c') { cls += ' win';  main = `${ep(p)} ${ICON.bolt} ${WEAPON.shield}`; sub = `shield broke!${r.cTake > 0 ? ' ' + dmg(r.cTake) : ''} · stunned`; }
       else { const ps = r.pShieldHit > 0; main = `${ps ? ep(c) : ep(p)} ${ICON.block} ${WEAPON.shield}`; sub = `blocked · shield ${(ps ? B.pShieldHP : B.cShieldHP)}/2`; }
     }
     else if (r.reflect === 'p')  { cls += ' win';  main = `${ICON.reverse} ${ep(c)}`; sub = dmg(r.cTake); }

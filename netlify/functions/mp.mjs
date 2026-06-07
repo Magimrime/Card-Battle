@@ -1,38 +1,35 @@
-/* Card Prediction — multiplayer relay as a Netlify Function.
-   Mirrors serve.js's /mp/* endpoints, but state lives in Netlify Blobs (serverless functions
-   can't hold rooms in memory). Each blob is written by exactly one party, so there are no races:
+/* Card Prediction — multiplayer relay (Netlify Functions v2).
+   v2 (export default / Request-Response) runs in the runtime that auto-injects the Netlify Blobs
+   context, so getStore() works with no manual siteID/token. State lives in Blobs; each blob is
+   written by exactly one party, so there are no races:
      room:<key>            { hostDeck, ts }     — written once by the host
      guest:<key>           { guestDeck }        — written once by the guest
      mv:<key>:<role>:<rnd> "<cardId>"           — written once by that player, that round
-   The browser client is unchanged: it still calls /mp/host, /mp/join, /mp/joined, /mp/move.
-   GET /mp/health is a self-test (confirms the function + Blobs are wired up). */
+   The browser client is unchanged: /mp/host, /mp/join, /mp/joined, /mp/move (+ /mp/health self-test). */
 import { getStore } from '@netlify/blobs';
 
 const KEY_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newKey = () => Array.from({ length: 4 }, () => KEY_CHARS[(Math.random() * KEY_CHARS.length) | 0]).join('');
-const json = (obj, statusCode = 200) => ({
-  statusCode,
-  headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-  body: JSON.stringify(obj),
+const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
+  status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 });
 
-export const handler = async (event) => {
+export default async (req) => {
   try {
-    const q = event.queryStringParameters || {};
-    let body = {};
-    try { body = JSON.parse(event.body || '{}'); } catch (e) { body = {}; }
-
-    // find which action this is, regardless of how Netlify rewrote the path
+    const url = new URL(req.url);
+    const q = url.searchParams;
     const known = ['joined', 'host', 'join', 'move', 'health'];
-    const action = (event.path || '').split('/').filter(Boolean).reverse().find((p) => known.includes(p));
-    const post = event.httpMethod === 'POST';
+    const action = url.pathname.split('/').filter(Boolean).reverse().find((p) => known.includes(p));
+    const post = req.method === 'POST';
+    let body = {};
+    if (post) { try { body = await req.json(); } catch (e) { body = {}; } }
 
     const store = getStore('cardprediction-mp');
 
     if (action === 'health') {
       await store.setJSON('health', { ts: Date.now() });
       const v = await store.get('health', { type: 'json' });
-      return json({ ok: true, blobs: !!v, path: event.path });
+      return json({ ok: true, blobs: !!v });
     }
 
     if (action === 'host' && post) {
@@ -50,9 +47,9 @@ export const handler = async (event) => {
     }
 
     if (action === 'joined') {
-      const room = await store.get('room:' + q.key, { type: 'json' });
+      const room = await store.get('room:' + q.get('key'), { type: 'json' });
       if (!room) return json({ gone: true });
-      const g = await store.get('guest:' + q.key, { type: 'json' });
+      const g = await store.get('guest:' + q.get('key'), { type: 'json' });
       return json({ joined: !!g, oppDeck: g ? g.guestDeck : null });
     }
 
@@ -63,15 +60,14 @@ export const handler = async (event) => {
     }
 
     if (action === 'move') {
-      if (!(await store.get('room:' + q.key))) return json({ gone: true });
-      const opp = q.role === 'host' ? 'guest' : 'host';
-      const card = await store.get(`mv:${q.key}:${opp}:${q.round}`);
+      if (!(await store.get('room:' + q.get('key')))) return json({ gone: true });
+      const opp = q.get('role') === 'host' ? 'guest' : 'host';
+      const card = await store.get(`mv:${q.get('key')}:${opp}:${q.get('round')}`);
       return json({ card: card == null ? null : card });
     }
 
-    return json({ error: 'unknown action', path: event.path }, 404);
+    return json({ error: 'unknown action', path: url.pathname }, 404);
   } catch (e) {
-    // surface the real reason (e.g. a Blobs misconfig) instead of a blank 500
     return json({ error: 'server', detail: String((e && e.message) || e) }, 500);
   }
 };

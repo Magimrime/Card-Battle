@@ -77,7 +77,7 @@ const CARDS = (function () {
 
   /* ---- the Shield: an always-available ability, never in the deck ---- */
   const SHIELD = { id: 'shield', name: 'Shield', emoji: '🛡️', type: 'shield', damage: 0, mana: 0, speed: 2.0,
-    c1: '#88dbd4', c2: '#236d70', desc: 'Blocks melee, projectiles & katanas. Using it is your whole turn.' };
+    c1: '#88dbd4', c2: '#236d70', desc: 'Absorbs damage up to its durability; a bigger hit breaks it and the overflow hits you. Using it is your whole turn.' };
 
   /* ---- an empty slot: played when you can afford nothing & your shield is stunned ---- */
   const NONE = { id: 'none', name: 'No card', emoji: '✕', type: 'broken', damage: 0, mana: 0, speed: 9,
@@ -140,6 +140,8 @@ const CARDS = (function () {
   function resolve(p, c, pShieldDead, cShieldDead, mods) {
     mods = mods || {};
     const pSpd = mods.pSpd || 0, cSpd = mods.cSpd || 0, pDmg = mods.pDmg || 0, cDmg = mods.cDmg || 0;
+    const pShieldHP = mods.pShieldHP != null ? mods.pShieldHP : 2; // current shield durability (for absorption overflow)
+    const cShieldHP = mods.cShieldHP != null ? mods.cShieldHP : 2;
 
     // effective types: a disabled Shield or any utility spell is "broken" (defenseless this turn)
     let pt = (p.type === 'shield' && pShieldDead) ? 'broken' : p.type;
@@ -183,21 +185,25 @@ const CARDS = (function () {
       return out;
     }
 
-    // ---------- SHIELD: it blocks the blow (0 HP) but the impact cracks its durability ----------
-    // shieldDmg = durability removed by the blow — breakers crack hardest, reverse/spells don't touch it.
-    const shieldDmg = (card, buff) => {
-      if (card.disableTurns) return card.disableTurns;                 // hook 1 · harpoon 2 · r-peg 3 · axe 3
-      if (card.type === 'reverse' || card.type === 'shield' || card.spell || card.id === 'none') return 0;
-      return card.damage + (buff || 0);                                // melee/projectile/katana chip by their damage
+    // ---------- SHIELD: an absorption pool ----------
+    // It soaks damage up to its current durability; anything beyond breaks it and the OVERFLOW
+    // is dealt to the player. Returns [durabilityLost, overflow]. Reverse/spells don't touch it;
+    // disablers chip durability (then a 0-durability shield breaks → stunned).
+    const shieldAbsorb = (card, buff, sh) => {
+      if (card.disableTurns) return [card.disableTurns, 0];            // hook 1 · harpoon 2 · r-peg 3
+      if (card.type === 'reverse' || card.type === 'shield' || card.spell || card.id === 'none') return [0, 0];
+      const dmg = card.damage + (buff || 0);                          // melee/projectile/katana
+      const soak = Math.min(dmg, sh);
+      return [soak, +(dmg - soak).toFixed(2)];
     };
     if (pt === 'shield' || ct === 'shield') {
       out.winner = 'tie';
       if (pt === 'shield' && ct !== 'shield') {
         if (c.pierceStun) { out.pTake = Math.max(0, +(c.damage + cDmg - 0.5).toFixed(2)); out.pShieldStun = c.pierceStun; out.winner = 'c'; } // axe cleaves through
-        else out.pShieldHit = shieldDmg(c, cDmg);
+        else { const [hit, over] = shieldAbsorb(c, cDmg, pShieldHP); out.pShieldHit = hit; out.pTake = over; if (over > 0) out.winner = 'c'; }
       } else if (ct === 'shield' && pt !== 'shield') {
         if (p.pierceStun) { out.cTake = Math.max(0, +(p.damage + pDmg - 0.5).toFixed(2)); out.cShieldStun = p.pierceStun; out.winner = 'p'; }
-        else out.cShieldHit = shieldDmg(p, pDmg);
+        else { const [hit, over] = shieldAbsorb(p, pDmg, cShieldHP); out.cShieldHit = hit; out.cTake = over; if (over > 0) out.winner = 'p'; }
       }
       return out;
     }
