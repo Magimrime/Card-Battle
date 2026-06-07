@@ -76,6 +76,7 @@
     timers.forEach(clearTimeout); timers = [];
     if (countdownInt) { clearInterval(countdownInt); countdownInt = null; }
     if (mpMoveInt) { clearInterval(mpMoveInt); mpMoveInt = null; }
+    if (mpReadyInt) { clearInterval(mpReadyInt); mpReadyInt = null; }
   }
   const rand   = (a, b) => a + Math.random() * (b - a);
   const choice = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -584,24 +585,31 @@
   function commitCPU() { if (B && !B.cDone) commitOpponent(cpuChooseMove()); }
 
   /* --------- online multiplayer (lockstep over the relay) --------- */
-  let mpMoveInt = null, mpJoinInt = null;
+  let mpMoveInt = null, mpJoinInt = null, mpReadyInt = null;
   const MP_POPUPS = ['mp-modal', 'mp-host-modal', 'mp-join-modal'];
   const mpJSON = (path, opts) => fetch(path, opts).then((r) => r.json());
   const mpStat = (id, t, cls) => { const s = el(id); if (s) { s.textContent = t || ''; s.className = 'mp-status ' + (cls || ''); } };
 
-  function mpCloseAll() {                                  // hide every MP popup and stop any host polling
+  function mpCloseAll() {                                  // hide every MP popup and stop any pending polling
     if (mpJoinInt) { clearInterval(mpJoinInt); mpJoinInt = null; }
+    if (mpReadyInt) { clearInterval(mpReadyInt); mpReadyInt = null; }
     MP_POPUPS.forEach((id) => el(id).classList.remove('show'));
   }
   function mpOpen(id) { mpCloseAll(); el(id).classList.add('show'); }
 
-  // Both players begin at the same shared moment: the server stamps `startAt` when the room fills,
-  // and each side waits until then. Otherwise the joiner (who starts instantly) runs ahead of the
-  // host (who only learns of the join a poll later), and the two games drift apart.
-  function mpStartSync(cfg, startAt) {
-    const wait = Math.min(5000, Math.max(0, (startAt || 0) - Date.now()));
-    mpStat(cfg.role === 'host' ? 'mp-host-status' : 'mp-status', 'Opponent ready — starting…');
-    setTimeout(() => { if (mpJoinInt) { clearInterval(mpJoinInt); mpJoinInt = null; } mpCloseAll(); startBattle(cfg); }, wait);
+  // Clock-free start barrier: each side announces readiness (round 0) and polls for the other's,
+  // then BOTH begin the instant both are ready. No fixed wait and no reliance on synced clocks, so
+  // the host no longer trails the joiner — they start within one fast poll of each other.
+  function mpStartSync(cfg) {
+    mpStat(cfg.role === 'host' ? 'mp-host-status' : 'mp-status', 'Opponent found — starting…');
+    mpJSON('/mp/move', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: cfg.key, role: cfg.role, round: 0, card: 'ready' }) }).catch(() => {});
+    if (mpReadyInt) clearInterval(mpReadyInt);
+    mpReadyInt = setInterval(() => {
+      mpJSON(`/mp/move?key=${cfg.key}&role=${cfg.role}&round=0`).then((d) => {
+        if (!d || d.gone) { clearInterval(mpReadyInt); mpReadyInt = null; return; }
+        if (d.card != null) { clearInterval(mpReadyInt); mpReadyInt = null; mpCloseAll(); startBattle(cfg); } // opponent is ready → go
+      }).catch(() => {});
+    }, 150);
   }
 
   // first popup: only Host / Join
@@ -630,7 +638,7 @@
         mpJoinInt = setInterval(() => {
           mpJSON('/mp/joined?key=' + key).then((d) => {
             if (d.gone) { clearInterval(mpJoinInt); mpJoinInt = null; mpStat('mp-host-status', 'Game expired — exit and try again.', 'err'); return; }
-            if (d.joined) { clearInterval(mpJoinInt); mpJoinInt = null; mpStartSync({ role: 'host', key, myDeck: deck, oppDeck: d.oppDeck }, d.startAt); }
+            if (d.joined) { clearInterval(mpJoinInt); mpJoinInt = null; mpStartSync({ role: 'host', key, myDeck: deck, oppDeck: d.oppDeck }); }
           }).catch(() => {});
         }, 300);
       })
@@ -645,7 +653,7 @@
     mpJSON('/mp/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, deck }) })
       .then((d) => {
         if (!d.ok) { mpStat('mp-status', d.error || 'Could not join.', 'err'); return; }
-        mpStartSync({ role: 'guest', key, myDeck: deck, oppDeck: d.oppDeck }, d.startAt);
+        mpStartSync({ role: 'guest', key, myDeck: deck, oppDeck: d.oppDeck });
       })
       .catch(() => mpStat('mp-status', 'Could not reach the server.', 'err'));
   }
